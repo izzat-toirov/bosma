@@ -10,8 +10,16 @@ import { UserService } from './user/user.service';
 
 async function start() {
   try {
+    // Render uchun PORT o'zgaruvchisi
     const PORT = process.env.PORT || 3030;
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+    // CORS sozlamalari (Frontend ulanishi uchun juda muhim)
+    app.enableCors({
+      origin: true, // Keyinchalik frontend linkini qo'yish tavsiya etiladi
+      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+      credentials: true,
+    });
 
     // Security middlewares
     app.use(
@@ -28,13 +36,12 @@ async function start() {
       }),
     );
 
-    // Global validation pipe with security enhancements
+    // Global validation pipe
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
-        // Transform validation errors to more descriptive messages
         exceptionFactory: (errors) => {
           const messages = errors.map((error) => {
             if (error.constraints) {
@@ -48,44 +55,38 @@ async function start() {
     );
 
     app.setGlobalPrefix('api');
-
-    // Apply global exception filter
     app.useGlobalFilters(new HttpExceptionFilter());
 
-    // Serve static files from the uploads directory
+    // Static fayllar (Uploads)
     app.useStaticAssets(join(__dirname, '../../uploads'), {
       prefix: '/uploads',
     });
 
+    // Swagger Documentation
     const config = new DocumentBuilder()
       .setTitle('Bosma.uz - Print-on-Demand Platform')
       .setDescription(
-        'RESTful API for Bosma.uz Print-on-Demand platform with design customization, order management, and admin dashboard',
+        'RESTful API for Bosma.uz platform with design customization and admin dashboard',
       )
       .setVersion('1.0')
-      .addTag('auth', 'Authentication endpoints')
-      .addTag('users', 'User management')
-      .addTag('products', 'Product management')
-      .addTag('variants', 'Product variant management')
-      .addTag('orders', 'Order management')
-      .addTag('carts', 'Shopping cart functionality')
-      .addTag('file-upload', 'File upload with image processing')
-      .addTag('admin', 'Admin-specific endpoints')
       .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document);
+
+    // Start-up logic (Superadmin yaratish)
     const userService = app.get(UserService);
     await userService.createSuperAdmin();
 
-
+    // SERVERNI ISHGA TUSHIRISH
     await app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server is running on port: ${PORT}`);
-      console.log(`📚 Swagger documentation: http://0.0.0.0:${PORT}/api/docs`);
+      console.log(`📚 Swagger: http://0.0.0.0:${PORT}/api/docs`);
     });
+
   } catch (error) {
-    console.log(error);
+    console.error('❌ Error during server startup:', error);
   }
 }
 
