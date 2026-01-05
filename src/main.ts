@@ -10,7 +10,6 @@ import { UserService } from './user/user.service';
 
 async function start() {
   try {
-    const PORT = process.env.PORT ?? 3030;
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
     // Security middlewares
@@ -79,11 +78,12 @@ async function start() {
     const userService = app.get(UserService);
     await userService.createSuperAdmin();
 
-    await app.listen(PORT, () => {
-      console.log(`✅ Bosma.uz Server started at: http://localhost:${PORT}`);
-      console.log(
-        `📚 Swagger documentation available at: http://localhost:${PORT}/api/docs`,
-      );
+    // PORT o'zgaruvchisi tepada aniqlangan bo'lishi kerak
+    const PORT = process.env.PORT || 3030;
+
+    await app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Server is running on port: ${PORT}`);
+      console.log(`📚 Swagger documentation: http://0.0.0.0:${PORT}/api/docs`);
     });
   } catch (error) {
     console.log(error);
