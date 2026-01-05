@@ -16,7 +16,7 @@ async function start() {
 
     // CORS sozlamalari (Frontend ulanishi uchun juda muhim)
     app.enableCors({
-      origin: true, // Keyinchalik frontend linkini qo'yish tavsiya etiladi
+      origin: true, 
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,
     });
@@ -55,6 +55,8 @@ async function start() {
     );
 
     app.setGlobalPrefix('api');
+
+    // Apply global exception filter
     app.useGlobalFilters(new HttpExceptionFilter());
 
     // Static fayllar (Uploads)
@@ -65,9 +67,7 @@ async function start() {
     // Swagger Documentation
     const config = new DocumentBuilder()
       .setTitle('Bosma.uz - Print-on-Demand Platform')
-      .setDescription(
-        'RESTful API for Bosma.uz platform with design customization and admin dashboard',
-      )
+      .setDescription('RESTful API for Bosma.uz platform with design customization and admin dashboard')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
@@ -90,4 +90,5 @@ async function start() {
   }
 }
 
+// Funksiyani faqat BIR MARTA chaqiring
 start();
