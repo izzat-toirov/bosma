@@ -1,0 +1,5 @@
+-- Storage sxemasi mavjudligini va policy to'g'ri tushishini ta'minlash
+CREATE POLICY "Allow public read access to bosma-images bucket"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'bosma-images');

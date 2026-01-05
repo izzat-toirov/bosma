@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url      = env("DATABASE_URL")
+}
+
+// --- 1. FOYDALANUVCHILAR ---
+model User {
+  id       Int     @id @default(autoincrement())
+  fullName String
+  email    String  @unique
+  phone    String  @unique
+  password String
+  role     Role    @default(USER)
+  region   String?
+  address  String?
+
+  isActive           Boolean   @default(false)
+  otpCode            String?
+  hashedRefreshToken String?
+  otpExpires         DateTime?
+
+  assets Asset[]
+  orders Order[]
+  cart   Cart?
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  notifications Notification[]
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+// --- 2. MAHSULOTLAR VA VARIANTLAR ---
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  category    Category
+  variants    Variant[]
+  createdAt   DateTime  @default(now())
+}
+
+enum Category {
+  HOODIE
+  T_SHIRT
+  SWEATSHIRT
+  VEST
+  CAP
+}
+
+model Variant {
+  id        Int     @id @default(autoincrement())
+  productId Int // String emas, Int bo'lishi kerak
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color     String
+  size      Size
+  stock     Int     @default(0)
+  price     Float
+
+  frontImage String
+  backImage  String
+
+  printAreaTop    Float
+  printAreaLeft   Float
+  printAreaWidth  Float
+  printAreaHeight Float
+
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+}
+
+enum Size {
+  S
+  M
+  L
+  XL
+  XXL
+}
+
+// --- 3. DIZAYN VA RASMLAR ---
+model Asset {
+  id        Int      @id @default(autoincrement())
+  url       String
+  userId    Int // String emas, Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+// --- 4. BUYURTMALAR ---
+model Order {
+  id     Int   @id @default(autoincrement())
+  userId Int? // String emas, Int
+  user   User? @relation(fields: [userId], references: [id])
+
+  customerName  String
+  customerPhone String @db.VarChar(20)
+  region        String
+  address       String
+
+  totalPrice    Float
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+  items         OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerPhone])
+  @@index([status])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  FAILED
+}
+
+// --- 5. SAVATCHA ELEMENTLARI ---
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int // String emas, Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  variantId Int // String emas, Int
+  variant   Variant @relation(fields: [variantId], references: [id])
+  quantity  Int     @default(1)
+  price     Float
+
+  frontDesign     Json?
+  frontPreviewUrl String?
+  backDesign      Json?
+  backPreviewUrl  String?
+  finalPrintFile  String?
+
+  @@index([orderId])
+}
+
+// --- 6. SAVATCHA JADVALI ---
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @unique // String emas, Int
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  cartId    Int // String emas, Int
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  variantId Int // String emas, Int
+  variant   Variant @relation(fields: [variantId], references: [id])
+  quantity  Int     @default(1)
+
+  frontDesign     Json?
+  backDesign      Json?
+  frontPreviewUrl String?
+  backPreviewUrl  String?
+
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title   String // Masalan: "Buyurtma tasdiqlandi"
+  message String // Masalan: "Sizning #102-sonli buyurtmangiz muvaffaqiyatli to'landi."
+  type    NotificationType @default(ORDER)
+  isRead  Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+enum NotificationType {
+  ORDER
+  PAYMENT
+  SYSTEM
+  PROMO
+}
